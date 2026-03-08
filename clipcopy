@@ -1,0 +1,99 @@
+#!/usr/bin/env sh
+set -eu
+
+usage() {
+  cat <<'USAGE'
+Usage: clipcopy [options] [text]
+
+Copy text to clipboard.
+
+Input:
+  - Positional text arguments, or
+  - stdin when no text arguments are provided.
+
+Options:
+  -p, --print    Print copied text to stdout
+  -h, --help     Show this help message
+
+Examples:
+  clipcopy "Research summary"
+  echo "Research summary" | clipcopy
+  clipcopy -p "Done"
+USAGE
+}
+
+copy_to_clipboard() {
+  if command -v pbcopy >/dev/null 2>&1; then
+    printf '%s' "$1" | pbcopy && return 0
+  fi
+
+  if command -v wl-copy >/dev/null 2>&1; then
+    printf '%s' "$1" | wl-copy 2>/dev/null && return 0
+  fi
+
+  if command -v xclip >/dev/null 2>&1; then
+    printf '%s' "$1" | xclip -selection clipboard 2>/dev/null && return 0
+  fi
+
+  if command -v xsel >/dev/null 2>&1; then
+    printf '%s' "$1" | xsel --clipboard --input 2>/dev/null && return 0
+  fi
+
+  echo "No clipboard command found. Tried pbcopy, wl-copy, xclip, xsel." >&2
+  echo "Install a clipboard utility for your platform." >&2
+  return 1
+}
+
+should_print=0
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    -p|--print)
+      should_print=1
+      shift
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      echo "Unknown flag: $1" >&2
+      exit 1
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+if [ "$#" -gt 0 ]; then
+  text=$1
+  shift
+  while [ "$#" -gt 0 ]; do
+    text="$text $1"
+    shift
+  done
+else
+  if [ -t 0 ]; then
+    echo "No input provided. Pass text args or pipe via stdin." >&2
+    exit 1
+  fi
+
+  # Append sentinel to preserve trailing newlines through command substitution
+  text=$(cat; printf x)
+  text=${text%x}
+  if [ -z "$text" ]; then
+    echo "No input provided. Pass text args or pipe via stdin." >&2
+    exit 1
+  fi
+fi
+
+copy_to_clipboard "$text"
+
+if [ "$should_print" -eq 1 ]; then
+  printf '%s' "$text"
+fi
