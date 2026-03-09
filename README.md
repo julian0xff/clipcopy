@@ -48,3 +48,7 @@ clipcopy -- "-text-starting-with-dash"
 4. `xsel` (Linux X11)
 
 Backends are tried in order — if one fails at runtime (e.g. `wl-copy` on an X11 session), the next is attempted. If none work, the command exits with an install hint.
+
+## Used by
+
+- [Clippy](https://github.com/julian0xff/Clippy) — clipboard history manager for macOS, built on top of clipcopy
